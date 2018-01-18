@@ -10,9 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:1.3.0
+# FROM tensorflow/tensorflow:1.3.0
 
-# FROM tensorflow/tensorflow:1.4.1
+FROM tensorflow/tensorflow:1.4.1
 
 RUN pip install gym==0.9.4
 RUN pip install pybullet==1.7.5

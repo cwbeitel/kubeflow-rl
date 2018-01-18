@@ -11,7 +11,8 @@
 # limitations under the License.
 
 # 1.4.1, agents-distributed
-FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-f97ee488
+# FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-f97ee488
+FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-b95365fe
 
 # 1.4.1
 # FROM gcr.io/kubeflow-rl/base-agents:cpu-10593c96
