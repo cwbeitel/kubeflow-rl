@@ -21,17 +21,16 @@ import pprint
 import tensorflow as tf
 
 import agents
-import pybullet_envs
+import pybullet_envs  # To make AntBulletEnv-v0 available.
 
 flags = tf.app.flags
 
-
-flags.DEFINE_string("mode", "train",
+flags.DEFINE_string("run_mode", "train",
                     "Run mode, one of [train, render, train_and_render].")
-flags.DEFINE_string("logdir", None,
+flags.DEFINE_string("logdir", '/tmp/test',
                     "The base directory in which to write logs and "
                     "checkpoints.")
-flags.DEFINE_string("config", "pybullet_kuka",
+flags.DEFINE_string("hparam_set_id", "pybullet_kuka_ff",
                     "The name of the config object to be used to parameterize "
                     "the run.")
 flags.DEFINE_string("run_base_tag",
@@ -59,90 +58,148 @@ flags.DEFINE_boolean("log_device_placement", False,
                      "variables are placed.")
 flags.DEFINE_boolean("debug", True,
                      "Run in debug mode.")
-flags.DEFINE_string("debug_ui_type", "curses",
-                    "Command-line user interface type (curses | readline)")
 
 # Algorithm
-flags.DEFINE_boolean("algorithm", "agents.ppo.PPOAlgorithm",
+flags.DEFINE_string("algorithm", "agents.ppo.PPOAlgorithm",
                      "The name of the algorithm to use.")
-flags.DEFINE_boolean("num_agents", 30,
+flags.DEFINE_integer("num_agents", 30,
                      "The number of agents to use.")
-flags.DEFINE_boolean("num_agents", 25,
+flags.DEFINE_integer("eval_episodes", 25,
                      "The number of eval episodes to use.")
-flags.DEFINE_boolean("env", "KukaBulletEnv-v0",
+flags.DEFINE_string("env", "AntBulletEnv-v0",
                      "The gym / bullet simulation environment to use.")
-flags.DEFINE_boolean("max_length", 1000,
+flags.DEFINE_integer("max_length", 1000,
                      "The maximum length of an episode.")
-flags.DEFINE_boolean("steps", 1e7,
+flags.DEFINE_integer("steps", 1e7,
                      "The number of steps.")
 
 # Network
-flags.DEFINE_boolean("network", 'agents.scripts.networks.feed_forward_gaussian',
+flags.DEFINE_string("network", "agents.scripts.networks.feed_forward_gaussian",
                      "The registered network name to use for policy and value.")
-flags.DEFINE_boolean("policy_layers", "200,100",
-                     "A comma-separates list of the size of a series of layers "
-                     "to comprise the policy network.")
-flags.DEFINE_boolean("value_layers", "200,100",
-                     "A comma-separates list of the size of a series of layers "
-                     "to comprise the value network.")
-flags.DEFINE_boolean("init_mean_factor", 0.1,
+# flags.DEFINE_string("policy_layers", "200,100",
+#                      "A comma-separates list of the size of a series of layers "
+#                      "to comprise the policy network.")
+# flags.DEFINE_string("value_layers", "200,100",
+#                      "A comma-separates list of the size of a series of layers "
+#                      "to comprise the value network.")
+flags.DEFINE_float("init_mean_factor", 0.1,
                      "unk")
-flags.DEFINE_boolean("init_logstd", -1,
+flags.DEFINE_integer("init_logstd", -1,
                      "unk")
 
 # Optimization
-flags.DEFINE_boolean("learning_rate", 1e-4,
+flags.DEFINE_float("learning_rate", 1e-4,
                      "The learning rate of the optimizer.")
-flags.DEFINE_boolean("optimizer", "tf.train.AdamOptimizer",
-                     "The import path of the optimizer to use.")
-flags.DEFINE_boolean("update_epochs", 25,
+# flags.DEFINE_string("optimizer", "tensorflow.train.AdamOptimizer",
+#                      "The import path of the optimizer to use.")
+flags.DEFINE_integer("update_epochs", 25,
                      "The number of update epochs.")
-flags.DEFINE_boolean("update_every", 30,
+flags.DEFINE_integer("update_every", 30,
                      "The update frequency.")
 
 # Losses
-flags.DEFINE_boolean("discount", 0.995,
+flags.DEFINE_float("discount", 0.995,
                      "The discount.")
-flags.DEFINE_boolean("kl_target", 1e-2,
+flags.DEFINE_float("kl_target", 1e-2,
                      "the KL target.")
-flags.DEFINE_boolean("kl_cutoff_factor", 2,
+flags.DEFINE_integer("kl_cutoff_factor", 2,
                      "The KL cutoff factor.")
-flags.DEFINE_boolean("kl_cutoff_coef", 1000,
+flags.DEFINE_integer("kl_cutoff_coef", 1000,
                      "The KL cutoff coefficient.")
-flags.DEFINE_boolean("kl_init_penalty", 1,
+flags.DEFINE_integer("kl_init_penalty", 1,
                      "The initial KL penalty?.")
 
 FLAGS = flags.FLAGS
 
 
-def _realize_import_attrs(obj, attribute_names):
-    """Given array of attribute names, loops over those attributes of obj
-    converting the string attribute to an imported python object, failing if
-    such an import cannot be performed."""
-    pass
+
+def base_hparams_v1():
+  # General
+  algorithm = agents.ppo.PPOAlgorithm
+  num_agents = 1
+  eval_episodes = 25
+  use_gpu = False
+
+  # Environment
+  env = 'KukaBulletEnv-v0'
+  max_length = 1000
+  steps = 10
+
+  # Network
+  network = agents.scripts.networks.feed_forward_gaussian
+  weight_summaries = dict(
+      all=r'.*',
+      policy=r'.*/policy/.*',
+      value=r'.*/value/.*')
+  policy_layers = 200, 100
+  value_layers = 200, 100
+  init_mean_factor = 0.1
+  init_logstd = -1
+
+  # Optimization
+  update_every = 30
+  update_epochs = 25
+  optimizer = tf.train.AdamOptimizer
+  optimizer_pre_initialize = True
+  learning_rate = 1e-4
+
+  # Losses
+  discount = 0.995
+  kl_target = 1e-2
+  kl_cutoff_factor = 2
+  kl_cutoff_coef = 1000
+  kl_init_penalty = 1
+
+  return locals()
 
 
-def _get_agents_configuration(log_dir, is_chief=False):
+def object_import_from_string(name):
+    components = name.split('.')
+    mod = __import__(components[0])
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
+
+
+def realize_import_attrs(d, filter):
+    for k, v in d.items():
+        if k in filter:
+            try:
+                imported = object_import_from_string(v)
+            except ImportError:
+                msg = ("Failed to realize import path %s." % v)
+                raise ImportError(msg)
+            d[k] = imported
+    return d
+
+
+def _get_agents_configuration(hparam_set_name, log_dir=None, is_chief=False):
   """Load hyperparameter config."""
   try:
     # Try to resume training.
     hparams = agents.scripts.utility.load_config(log_dir)
   except IOError:
-    from .hparams import realize
-    hparams = _realize_import_attrs(FLAGS,
-                                    ["network", "algorithm", "optimizer"])
 
-    # HACK: Extend with weight summaries
-    hparams.weight_summaries = dict(all=r'.*',
-                               policy=r'.*/policy/.*',
-                               value=r'.*/value/.*')
+    hparams = base_hparams_v1()
 
-    hparams = hp.as_dict()
+    # --------
+    # Experiment extending base hparams with FLAGS and dynamic import of
+    # network and algorithm.
+
+    for k, v in FLAGS.__dict__['__flags'].items():
+        hparams[k] = v
+
+    hparams = realize_import_attrs(hparams, ["network", "algorithm"])
+
+    # --------
+
+    print(hparams)
+
+    hparams = agents.tools.AttrDict(hparams)
 
     if is_chief:
       # Write the hyperparameters for this run to a config YAML for posteriority
-      #hparams = agents.scripts.utility.save_config(hparams, log_dir)
-      hparams = agents.scripts.utility.save_config(hp, log_dir)
+      hparams = agents.scripts.utility.save_config(hparams, log_dir)
   return hparams
 
 
@@ -164,18 +221,18 @@ def main(unused_argv):
   log_dir = FLAGS.logdir
 
   agents_config = _get_agents_configuration(
-      FLAGS.config, log_dir, run_config.is_chief)
+      FLAGS.hparam_set_id, log_dir, run_config.is_chief)
 
-  if (FLAGS.mode == 'train' or FLAGS.mode == 'train_and_render'):
+  if FLAGS.run_mode == 'train':
     if run_config.is_chief:
       for score in agents.scripts.train.train(agents_config, env_processes=True):
         logging.info('Score {}.'.format(score))
-  if (FLAGS.mode == 'render' or FLAGS.mode == 'train_and_render'):
+  if FLAGS.run_mode == 'render':
     agents.scripts.visualize.visualize(
         logdir=FLAGS.logdir, outdir=log_dir, num_agents=1, num_episodes=1,
         checkpoint=None, env_processes=True)
-  if FLAGS.mode not in ['train', 'render', 'train_and_render']:
-    raise ValueError('Unrecognized mode, please set the run mode with --mode '
+  if FLAGS.run_mode not in ['train', 'render']:
+    raise ValueError('Unrecognized mode, please set the run mode with --run_mode '
                      'to train, render, or train_and_render.')
 
 
