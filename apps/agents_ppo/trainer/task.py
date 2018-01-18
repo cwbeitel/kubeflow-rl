@@ -70,7 +70,7 @@ flags.DEFINE_string("env", "AntBulletEnv-v0",
                      "The gym / bullet simulation environment to use.")
 flags.DEFINE_integer("max_length", 1000,
                      "The maximum length of an episode.")
-flags.DEFINE_integer("steps", 1e7,
+flags.DEFINE_integer("steps", 10000000,
                      "The number of steps.")
 
 # Network
@@ -154,6 +154,7 @@ def base_hparams_v1():
 
 
 def object_import_from_string(name):
+
     components = name.split('.')
     mod = __import__(components[0])
     for comp in components[1:]:
@@ -164,11 +165,11 @@ def object_import_from_string(name):
 def realize_import_attrs(d, filter):
     for k, v in d.items():
         if k in filter:
-            try:
-                imported = object_import_from_string(v)
-            except ImportError:
-                msg = ("Failed to realize import path %s." % v)
-                raise ImportError(msg)
+            # try:
+            imported = object_import_from_string(v)
+            # except ImportError as e:
+            #     msg = ("Failed to realize import path %s." % v)
+            #     raise e
             d[k] = imported
     return d
 
@@ -225,8 +226,11 @@ def main(unused_argv):
 
   if FLAGS.run_mode == 'train':
     if run_config.is_chief:
-      for score in agents.scripts.train.train(agents_config, env_processes=True):
-        logging.info('Score {}.'.format(score))
+      from .train import train
+      for score in train(agents_config):
+        tf.logging.info('Mean score: %s' % score)
+      # for score in agents.scripts.train.train(agents_config, env_processes=True):
+      #   logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
     agents.scripts.visualize.visualize(
         logdir=FLAGS.logdir, outdir=log_dir, num_agents=1, num_episodes=1,
@@ -234,6 +238,13 @@ def main(unused_argv):
   if FLAGS.run_mode not in ['train', 'render']:
     raise ValueError('Unrecognized mode, please set the run mode with --run_mode '
                      'to train, render, or train_and_render.')
+
+  # HACK: Runs complete without error but still exit with system error code.
+  # Leading to runs being repeated given restartPolicy.
+  # tf.logging.info('Exiting gracefully.')
+  # import sys
+  # sys.exit(0)
+  # -----------
 
 
 if __name__ == '__main__':

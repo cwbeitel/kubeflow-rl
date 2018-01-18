@@ -10,26 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 1.4.1, agents-distributed
-FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-f97ee488
+FROM tensorflow/tensorflow:1.3.0
 
-# 1.4.1
-# FROM gcr.io/kubeflow-rl/base-agents:cpu-10593c96
+# FROM tensorflow/tensorflow:1.4.1
 
-# 1.3.0, agents-distributed
-# FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-6ac03904
+RUN pip install gym==0.9.4
+RUN pip install pybullet==1.7.5
 
-# 1.3.0
-# FROM gcr.io/kubeflow-rl/base-agents:cpu-3c4cc9bd
+RUN apt-get update
+RUN apt-get install -y libav-tools ffmpeg
 
-# 1.5.0-rc1
-# FROM gcr.io/kubeflow-rl/agents-ppo:cpu-60d01606
+ADD third_party/agents-distributed /app/agents/
+RUN cd /app/agents && pip install -e .
 
-ADD trainer /app/trainer/
-
-# TODO: Split demo stuff out into separate container?
-ADD * /app/demo/
-
-WORKDIR /app/
-
-ENTRYPOINT ["python", "-m", "trainer.task"]
+WORKDIR /app

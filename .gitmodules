@@ -13,3 +13,6 @@
 [submodule "third_party/kubeflow"]
 	path = third_party/kubeflow
 	url = https://github.com/google/kubeflow.git
+[submodule "third_party/agents-distributed"]
+	path = third_party/agents-distributed
+	url = https://github.com/cwbeitel/agents.git
