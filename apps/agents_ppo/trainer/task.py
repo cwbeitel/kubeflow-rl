@@ -23,6 +23,8 @@ import tensorflow as tf
 import agents
 import pybullet_envs  # To make AntBulletEnv-v0 available.
 
+import pprint
+import pip
 
 flags = tf.app.flags
 
@@ -54,10 +56,13 @@ flags.DEFINE_boolean("use_monitored_training_session", True,
                      "Whether to use tf.train.MonitoredTrainingSession to "
                      "manage the training session. If not, use "
                      "tf.train.Supervisor.")
+
 flags.DEFINE_boolean("log_device_placement", False,
                      "Whether to output logs listing the devices on which "
                      "variables are placed.")
 flags.DEFINE_boolean("debug", True,
+                     "Run in debug mode.")
+flags.DEFINE_boolean("dump_dependency_versions", False,
                      "Run in debug mode.")
 
 # Algorithm
@@ -91,12 +96,14 @@ flags.DEFINE_integer("init_logstd", -1,
 # Optimization
 flags.DEFINE_float("learning_rate", 1e-4,
                      "The learning rate of the optimizer.")
-# flags.DEFINE_string("optimizer", "tensorflow.train.AdamOptimizer",
-#                      "The import path of the optimizer to use.")
+flags.DEFINE_string("optimizer", "tensorflow.train.AdamOptimizer",
+                     "The import path of the optimizer to use.")
 flags.DEFINE_integer("update_epochs", 25,
                      "The number of update epochs.")
 flags.DEFINE_integer("update_every", 30,
                      "The update frequency.")
+flags.DEFINE_boolean("optimizer_pre_initialize", True,
+                     "Whether to pre-initialize the optimizer.")
 
 # Losses
 flags.DEFINE_float("discount", 0.995,
@@ -187,22 +194,30 @@ def _get_agents_configuration(hparam_set_name, log_dir=None, is_chief=False):
     # --------
     # Experiment extending base hparams with FLAGS and dynamic import of
     # network and algorithm.
-
     for k, v in FLAGS.__dict__['__flags'].items():
         hparams[k] = v
-
-    hparams = realize_import_attrs(hparams, ["network", "algorithm"])
-
+    hparams = realize_import_attrs(hparams, ["network", "algorithm", "optimizer"])
     # --------
-
-    print(hparams)
 
     hparams = agents.tools.AttrDict(hparams)
 
     if is_chief:
       # Write the hyperparameters for this run to a config YAML for posteriority
       hparams = agents.scripts.utility.save_config(hparams, log_dir)
+
+  pprint.pprint(hparams)
   return hparams
+
+
+def dump_dependency_versions():
+  tf.logging.info("Tensorflow version: %s", tf.__version__)
+  tf.logging.info("Tensorflow git version: %s", tf.__git_version__)
+
+  import pip
+  pprint.pprint(sorted(["%s==%s" % (i.key, i.version) for i in pip.get_installed_distributions()]))
+
+  if FLAGS.run_mode == 'render':
+      os.system("ffmpeg -version")
 
 
 def main(unused_argv):
@@ -212,8 +227,9 @@ def main(unused_argv):
     ValueError: If the arguments are invalid.
   """
   tf.logging.set_verbosity(tf.logging.INFO)
-  tf.logging.info("Tensorflow version: %s", tf.__version__)
-  tf.logging.info("Tensorflow git version: %s", tf.__git_version__)
+
+  if FLAGS.dump_dependency_versions:
+      dump_dependency_versions()
 
   if FLAGS.debug:
     tf.logging.set_verbosity(tf.logging.DEBUG)
@@ -233,8 +249,9 @@ def main(unused_argv):
       # for score in agents.scripts.train.train(agents_config, env_processes=True):
       #   logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
+    render_dir = os.path.join(FLAGS.logdir, 'render')
     agents.scripts.visualize.visualize(
-        logdir=FLAGS.logdir, outdir=log_dir, num_agents=1, num_episodes=1,
+        logdir=FLAGS.logdir, outdir=render_dir, num_agents=1, num_episodes=1,
         checkpoint=None, env_processes=True)
   if FLAGS.run_mode not in ['train', 'render']:
     raise ValueError('Unrecognized mode, please set the run mode with --run_mode '

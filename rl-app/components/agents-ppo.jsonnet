@@ -16,7 +16,7 @@ local logDir = params.log_dir;
 local image = params.image;
 local imageGpu = params.image_gpu;
 local numCpu = params.num_cpu;
-
+local dumpDependencyVersions = params.dump_dependency_versions;
 local runMode = params.run_mode;
 local logdir = params.logdir;
 local hparamSetID = params.hparam_set_id;
@@ -68,7 +68,8 @@ local args = [
   "--kl_target=" + klTarget,
   "--kl_cutoff_factor=" + klCutoffFactor,
   "--kl_cutoff_coef=" + klCutoffCoef,
-  "--kl_init_penalty=" + klInitPenalty
+  "--kl_init_penalty=" + klInitPenalty,
+  "--dump_dependency_versions=" + dumpDependencyVersions
 ];
 
 local workerSpec = if numGpus > 0 then
