@@ -111,11 +111,10 @@ def train(agents_config, env_processes=True, log_dir=None):
         lambda: agents.scripts.train._create_environment(agents_config),
         agents_config.num_agents, env_processes)
 
-    # Attempt to work around not fetchable ops when running synchronous
-    # training, was not effective.
-    optimizer = agents_config.optimizer(agents_config.learning_rate)
-
     if FLAGS.sync_replicas:
+
+      optimizer = agents_config.optimizer(agents_config.learning_rate)
+
       optimizer = tf.train.SyncReplicasOptimizer(
           optimizer,
           replicas_to_aggregate=(
@@ -123,8 +122,9 @@ def train(agents_config, env_processes=True, log_dir=None):
           total_num_replicas=(run_config.num_worker_replicas)
       )
 
-    with agents_config.unlocked:
-      agents_config.optimizer = optimizer
+      with agents_config.unlocked:
+        agents_config.optimizer = optimizer
+        agents_config.optimizer_pre_initialize = True
 
     graph = define_simulation_graph(
         batch_env, agents_config.algorithm, agents_config, global_step)

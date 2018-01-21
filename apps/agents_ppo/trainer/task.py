@@ -102,8 +102,8 @@ flags.DEFINE_integer("update_epochs", 25,
                      "The number of update epochs.")
 flags.DEFINE_integer("update_every", 30,
                      "The update frequency.")
-flags.DEFINE_boolean("optimizer_pre_initialize", True,
-                     "Whether to pre-initialize the optimizer.")
+# flags.DEFINE_boolean("optimizer_pre_initialize", True,
+#                      "Whether to pre-initialize the optimizer.")
 
 # Losses
 flags.DEFINE_float("discount", 0.995,
@@ -118,7 +118,6 @@ flags.DEFINE_integer("kl_init_penalty", 1,
                      "The initial KL penalty?.")
 
 FLAGS = flags.FLAGS
-
 
 
 def base_hparams_v1():
@@ -148,7 +147,7 @@ def base_hparams_v1():
   update_every = 30
   update_epochs = 25
   optimizer = tf.train.AdamOptimizer
-  optimizer_pre_initialize = True
+  # optimizer_pre_initialize = True
   learning_rate = 1e-4
 
   # Losses
@@ -243,11 +242,11 @@ def main(unused_argv):
 
   if FLAGS.run_mode == 'train':
     if run_config.is_chief:
-      from .train import train
-      for score in train(agents_config):
-        tf.logging.info('Mean score: %s' % score)
-      # for score in agents.scripts.train.train(agents_config, env_processes=True):
-      #   logging.info('Score {}.'.format(score))
+      # from .train import train
+      # for score in train(agents_config):
+      #   tf.logging.info('Mean score: %s' % score)
+      for score in agents.scripts.train.train(agents_config, env_processes=True):
+        logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
     render_dir = os.path.join(FLAGS.logdir, 'render')
     agents.scripts.visualize.visualize(

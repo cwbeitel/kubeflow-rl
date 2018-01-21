@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# TODO: Make this optional ----------------------------------------------------
+echo "Clearing previous fission deployment and port forwards."
+
+kubectl delete namespace fission
+kubectl delete namespace fission-function
+kubectl delete namespace fission-builder
+
+kubectl delete clusterrolebinding fission-builder-crd
+kubectl delete clusterrolebinding fission-crd
+kubectl delete clusterrolebinding fission-fetcher-crd
+kubectl delete clusterrolebinding fission-function-crd
+
+while [[ $(kubectl get namespaces | grep fission) ]]; do
+  echo "Waiting for old namespaces to clear... The following are still active:"
+  kubectl get namespaces | grep fission
+  sleep 5
+done
+
+# Clean up existing fission port forwards
+for i in `ps -f | grep 'kubectl -n fission port-forward' | grep -v grep | cut -f5 -d' '`; do
+  kill $i
+done
+
+echo "Previous deployment and port forwarding cleared."
+# -----------------------------------------------------------------------------
+
+echo "Deploying fission... Please stand by."
+
+CHART=https://github.com/fission/fission/releases/download/0.4.0/fission-all-0.4.0.tgz
+
+helm install --namespace fission $CHART --set serviceType=ClusterIP
+
+# TODO: Automatically find an open port before attempting to forward
+# TODO: Capture PID's of background tasks so they can be cleaned up if test fails
+
+while [[ -z ${CONTROLLER_POD_NAME} ]] || [[ -z ${ROUTER_POD_NAME} ]]; do
+  echo "Waiting for controller and router pods to be ready."
+  CONTROLLER_POD_NAME=$(kubectl -n fission get pod -o name|grep controller|cut -f2 -d'/')
+  ROUTER_POD_NAME=$(kubectl -n fission get pod -o name|grep router|cut -f2 -d'/')
+  sleep 5
+done
+
+echo "Controller pod name: ${CONTROLLER_POD_NAME}"
+echo "Router pod name: ${ROUTER_POD_NAME}"
+
+echo "Forwarding controller to localhost:8889"
+echo kubectl -n fission port-forward ${CONTROLLER_POD_NAME} 8881:8888 &
+kubectl -n fission port-forward ${CONTROLLER_POD_NAME} 8881:8888 &
+
+echo "Forwarding fission router to localhost:8887"
+echo kubectl -n fission port-forward ${ROUTER_POD_NAME} 8882:8888 &
+kubectl -n fission port-forward ${ROUTER_POD_NAME} 8882:8888 &
+
+echo "Waiting for port forwards to be ready..."
+sleep 10
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Testing deployment..."
+fission env create --name nodejs --image fission/node-env:0.4.0
+curl -LO https://raw.githubusercontent.com/fission/fission/master/examples/nodejs/hello.js
+fission function create --name hello --env nodejs --code hello.js
+fission route create --method GET --url /hello --function hello
+curl $FISSION_ROUTER/hello
+response=$(curl -X GET $FISSION_ROUTER/hello);
+fission function delete --name hello
+fission env delete --name nodejs
+ROUTE_ID=`fission route list | grep hello | cut -f1 -d' '`
+fission route delete --name ${ROUTE_ID}
+rm ${SCRIPT_DIR}/hello.js
+
+# TODO: Slow in the negative case because each request has to wait to time out
+
+if [ "Hello, world!" == "${response}" ]; then
+  echo "Fission deployed successfully. 🎉"
+  echo "Please execute the following:"
+  echo "export FISSION_URL=http://127.0.0.1:8881"
+  echo "export FISSION_ROUTER=http://127.0.0.1:8882"
+else
+  echo "Deploy test failed, something went wrong 😬"
+  exit 1
+fi
