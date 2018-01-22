@@ -12,10 +12,10 @@
 
 # 1.4.1, agents-distributed
 # FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-f97ee488
-FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-b95365fe
+# FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-b95365fe
 
 # 1.4.1
-# FROM gcr.io/kubeflow-rl/base-agents:cpu-10593c96
+FROM gcr.io/kubeflow-rl/base-agents:cpu-10593c96
 
 # 1.3.0, agents-distributed
 # FROM gcr.io/kubeflow-rl/base-agents-distributed:cpu-6ac03904
@@ -32,5 +32,8 @@ ADD trainer /app/trainer/
 ADD * /app/demo/
 
 WORKDIR /app/
+
+# Hack
+RUN pip install google-cloud-storage==1.7.0
 
 ENTRYPOINT ["python", "-m", "trainer.task"]

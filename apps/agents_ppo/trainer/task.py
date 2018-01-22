@@ -219,6 +219,32 @@ def dump_dependency_versions():
       os.system("ffmpeg -version")
 
 
+def upload_renders(render_dir, gcs_render_out_dir):
+
+    from google.cloud import storage
+
+    # Get a list of all files in the render_dir
+    local_files = [f for f in os.listdir(render_dir) if os.path.isfile(os.path.join(render_dir, f))]
+    print(local_files)
+
+    storage_client = storage.Client()
+
+    if not gcs_render_out_dir.startswith("gs://"):
+        raise ValueError("upload_renders expected gcs_render_out_dir argument to start with gs://, saw %s" % gcs_render_out_dir)
+
+    bucket_path = gcs_render_out_dir.split('/')[2]
+    bucket = storage_client.get_bucket(bucket_path)
+
+    blob_base_path = '/'.join(gcs_render_out_dir.split('/')[3:])
+    print(blob_base_path)
+
+    for local_filename in local_files:
+        blob_path = os.path.join(blob_base_path, local_filename)
+        blob = bucket.blob(blob_path)
+        local_file_path = os.path.join(render_dir,local_filename)
+        blob.upload_from_filename(local_file_path)
+
+
 def main(unused_argv):
   """Run training.
 
@@ -248,13 +274,13 @@ def main(unused_argv):
       for score in agents.scripts.train.train(agents_config, env_processes=True):
         logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
-    render_dir = os.path.join(FLAGS.logdir, 'render', '')
+    render_tmp_dir = "/tmp/agents-render"
+    os.system('mkdir %s' % render_tmp_dir)
+    render_out_dir = os.path.join(FLAGS.logdir, 'render', '')
     agents.scripts.visualize.visualize(
-        logdir=FLAGS.logdir, outdir=render_dir, num_agents=1, num_episodes=1,
+        logdir=FLAGS.logdir, outdir=render_tmp_dir, num_agents=1, num_episodes=1,
         checkpoint=None, env_processes=True)
-  # if FLAGS.run_mode not in ['train', 'render']:
-  #   raise ValueError('Unrecognized mode, please set the run mode with --run_mode '
-  #                    'to train, render, or train_and_render.')
+    upload_renders(render_tmp_dir, render_out_dir)
 
 
 if __name__ == '__main__':

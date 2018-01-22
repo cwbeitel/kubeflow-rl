@@ -27,7 +27,7 @@ from kubernetes import client, config
 config.load_incluster_config()
 v1 = client.BatchV1Api()
 
-RENDER_IMAGE_TAG="gcr.io/kubeflow-rl/agents-ppo:cpu-7bd4bf03"
+RENDER_IMAGE_TAG="gcr.io/kubeflow-rl/agents-ppo:cpu-7c6c4340"
 
 
 class RenderJobMessage(object):
