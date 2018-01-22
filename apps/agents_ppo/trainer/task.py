@@ -56,6 +56,8 @@ flags.DEFINE_boolean("use_monitored_training_session", True,
                      "Whether to use tf.train.MonitoredTrainingSession to "
                      "manage the training session. If not, use "
                      "tf.train.Supervisor.")
+flags.DEFINE_integer("render_secs", 600,
+                     "Number of seconds between triggering render jobs.")
 
 flags.DEFINE_boolean("log_device_placement", False,
                      "Whether to output logs listing the devices on which "
@@ -268,11 +270,11 @@ def main(unused_argv):
 
   if FLAGS.run_mode == 'train':
     if run_config.is_chief:
-      # from .train import train
-      # for score in train(agents_config):
-      #   tf.logging.info('Mean score: %s' % score)
-      for score in agents.scripts.train.train(agents_config, env_processes=True):
-        logging.info('Score {}.'.format(score))
+      from .train import train
+      for score in train(agents_config):
+        tf.logging.info('Mean score: %s' % score)
+      # for score in agents.scripts.train.train(agents_config, env_processes=True):
+      #   logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
     render_tmp_dir = "/tmp/agents-render"
     os.system('mkdir %s' % render_tmp_dir)

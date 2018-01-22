@@ -26,14 +26,14 @@ FROM gcr.io/kubeflow-rl/base-agents:cpu-10593c96
 # 1.5.0-rc1
 # FROM gcr.io/kubeflow-rl/agents-ppo:cpu-60d01606
 
+# Hack
+RUN pip install google-cloud-storage==1.7.0
+
 ADD trainer /app/trainer/
 
 # TODO: Split demo stuff out into separate container?
 ADD * /app/demo/
 
 WORKDIR /app/
-
-# Hack
-RUN pip install google-cloud-storage==1.7.0
 
 ENTRYPOINT ["python", "-m", "trainer.task"]

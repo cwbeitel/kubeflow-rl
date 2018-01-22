@@ -42,6 +42,8 @@ local klCutoffFactor = params.kl_cutoff_factor;
 local klCutoffCoef = params.kl_cutoff_coef;
 local klInitPenalty = params.kl_init_penalty;
 
+local renderSecs = params.render_secs;
+
 local args = [
   "--run_mode=" + runMode,
   "--logdir=" + logdir,
@@ -69,7 +71,8 @@ local args = [
   "--kl_cutoff_factor=" + klCutoffFactor,
   "--kl_cutoff_coef=" + klCutoffCoef,
   "--kl_init_penalty=" + klInitPenalty,
-  "--dump_dependency_versions=" + dumpDependencyVersions
+  "--dump_dependency_versions=" + dumpDependencyVersions,
+  "--render_secs=" + renderSecs
 ];
 
 local workerSpec = if numGpus > 0 then

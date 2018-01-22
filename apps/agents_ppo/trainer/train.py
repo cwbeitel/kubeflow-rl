@@ -35,6 +35,8 @@ from agents import tools
 from agents.scripts import configs, utility
 from tensorflow.python.ops import variables
 
+from .trigger import RenderTriggerHook
+
 import agents
 
 
@@ -157,6 +159,11 @@ def train(agents_config, env_processes=True, log_dir=None):
       opt = graph.algo._optimizer
       sync_replicas_hook = opt.make_session_run_hook(run_config.is_chief)
       hooks.append(sync_replicas_hook)
+
+    render_secs = agents_config.render_secs
+    render_trigger_hook = RenderTriggerHook(log_dir=log_dir,
+                                            every_n_secs=render_secs)
+    hooks.append(render_trigger_hook)
 
     scaffold = tf.train.Scaffold(
         saver=saver,

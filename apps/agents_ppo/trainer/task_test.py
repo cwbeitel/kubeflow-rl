@@ -34,6 +34,17 @@ class TestRun(unittest.TestCase):
     #                    "--logdir=%s" % tmp_logdir])
     #   tf.app.run()
 
+    def test_render_periodically(self):
+      os.environ['TF_CONFIG'] = '{"cluster":{"master":["pybullet-kuka-ff-c2f81017-master-v3k7-0:2222"]},"task":{"type":"master","index":0},"environment":"cloud"}'
+      tmp_logdir = '/tmp/agents-logs/test/test-render-periodically0'
+      sys.argv.extend(["--steps=1000",
+                       "--sync_replicas=False",
+                       "--optimizer_pre_initialize=False",
+                       "--num_agents=1",
+                       "--render_secs=10",
+                       "--logdir=%s" % tmp_logdir])
+      tf.app.run()
+
     # TODO: Even when a run completes successfully this exits with a system
     # error.
     # ======================================================================
@@ -51,15 +62,15 @@ class TestRun(unittest.TestCase):
 
     # TODO: This following test depends on having run the above...
     #
-    def test_rendering_runs(self):
-      os.environ['TF_CONFIG'] = '{"cluster":{"master":["pybullet-kuka-ff-c2f81017-master-v3k7-0:2222"]},"task":{"type":"master","index":0},"environment":"cloud"}'
-      tmp_logdir = '/tmp/agents-logs/test/non-distributed-2'
-      sys.argv.extend(["--run_mode=render",
-                       "--optimizer_pre_initialize=False",
-                       "--num_agents=1",
-                       "--dump_dependency_versions=True",
-                       "--logdir=%s" % tmp_logdir])
-      tf.app.run()
+    # def test_rendering_runs(self):
+    #   os.environ['TF_CONFIG'] = '{"cluster":{"master":["pybullet-kuka-ff-c2f81017-master-v3k7-0:2222"]},"task":{"type":"master","index":0},"environment":"cloud"}'
+    #   tmp_logdir = '/tmp/agents-logs/test/non-distributed-2'
+    #   sys.argv.extend(["--run_mode=render",
+    #                    "--optimizer_pre_initialize=False",
+    #                    "--num_agents=1",
+    #                    "--dump_dependency_versions=True",
+    #                    "--logdir=%s" % tmp_logdir])
+    #   tf.app.run()
 
     # TODO: This doesn't work - tests interact. Need to set directly on FLAGS
     # then app.run with local version of flags.

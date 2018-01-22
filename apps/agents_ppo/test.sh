@@ -4,7 +4,7 @@ DOCKER_CMD="docker run -it \
   -v ${SCRIPT_DIR}/trainer:/app/trainer \
   -v /tmp/agents-logs/test:/tmp/agents-logs/test \
   --entrypoint /usr/bin/env \
-  gcr.io/kubeflow-rl/agents-ppo:cpu-6ff68cdb \
+  gcr.io/kubeflow-rl/agents-ppo:cpu-3bcb6ee8 \
   python -m trainer.task_test"
 
 echo "Running test with docker command:"
@@ -14,6 +14,8 @@ eval ${DOCKER_CMD}
 
 # 1.4.1, agents-distributed: gcr.io/kubeflow-rl/agents-ppo:cpu-6ff68cdb
 # 1.4.1: gcr.io/kubeflow-rl/base-agents:cpu-10593c96
+
+# 1.4.1, MTS: gcr.io/kubeflow-rl/agents-ppo:cpu-3bcb6ee8
 
 # 1.5.0-rc1: gcr.io/kubeflow-rl/agents-ppo:cpu-60d01606
 
