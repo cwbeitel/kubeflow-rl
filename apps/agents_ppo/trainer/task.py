@@ -248,20 +248,13 @@ def main(unused_argv):
       for score in agents.scripts.train.train(agents_config, env_processes=True):
         logging.info('Score {}.'.format(score))
   if FLAGS.run_mode == 'render':
-    render_dir = os.path.join(FLAGS.logdir, 'render')
+    render_dir = os.path.join(FLAGS.logdir, 'render', '')
     agents.scripts.visualize.visualize(
         logdir=FLAGS.logdir, outdir=render_dir, num_agents=1, num_episodes=1,
         checkpoint=None, env_processes=True)
-  if FLAGS.run_mode not in ['train', 'render']:
-    raise ValueError('Unrecognized mode, please set the run mode with --run_mode '
-                     'to train, render, or train_and_render.')
-
-  # HACK: Runs complete without error but still exit with system error code.
-  # Leading to runs being repeated given restartPolicy.
-  # tf.logging.info('Exiting gracefully.')
-  # import sys
-  # sys.exit(0)
-  # -----------
+  # if FLAGS.run_mode not in ['train', 'render']:
+  #   raise ValueError('Unrecognized mode, please set the run mode with --run_mode '
+  #                    'to train, render, or train_and_render.')
 
 
 if __name__ == '__main__':

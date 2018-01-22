@@ -58,7 +58,8 @@ def create_render_job(render_job_message):
                     {'containers': [
                         {'image': RENDER_IMAGE_TAG,
                          'name': name,
-                         'args': ["--logdir", render_job_message.log_dir]
+                         'args': ["--logdir", render_job_message.log_dir,
+                                  "--run_mode=render"]
                          }],
                         'restartPolicy': 'Never'},
                     'metadata': {'name': name}}},
