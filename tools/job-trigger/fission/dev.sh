@@ -24,4 +24,7 @@ fission function update --name ${FUNCTION_NAME} --env python-kube --code ${TRIGG
 # parsed the message data.
 # python nats-sub.py checkpoint-responder-events
 
-curl -H "Content-Type: application/json" -X POST -d '{"job_type":"render","log_dir":"gs://kubeflow-rl-kf/jobs/pybullet-kuka-ff-0118-2346-bac2"}' ${FISSION_ROUTER}/${ROUTE_NAME}
+
+curl -H "Content-Type: application/json" -X POST -d '{"args":{"render_count":2,"meta":{"elapsed_time":20.00865602493286,"global_step":1197},"log_dir":"gs://kubeflow-rl-kf/jobs/kuka-46613b75"},"job_type":"render"}' ${FISSION_ROUTER}/${ROUTE_NAME}
+
+# curl -H "Content-Type: application/json" -X POST -d '{"job_type":"render","log_dir":"gs://kubeflow-rl-kf/jobs/pybullet-kuka-ff-0118-2346-bac2"}' ${FISSION_ROUTER}/${ROUTE_NAME}

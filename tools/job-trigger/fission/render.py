@@ -27,7 +27,7 @@ from kubernetes import client, config
 config.load_incluster_config()
 v1 = client.BatchV1Api()
 
-RENDER_IMAGE_TAG="gcr.io/kubeflow-rl/agents-ppo:cpu-7c6c4340"
+RENDER_IMAGE_TAG="gcr.io/kubeflow-rl/agents-ppo:cpu-256e4ec7"
 
 
 class RenderJobMessage(object):
@@ -37,19 +37,32 @@ class RenderJobMessage(object):
         """Initialize the render job message with a log_dir and job_type."""
 
         assert "job_type" in from_json
-        assert "log_dir" in from_json
+        assert "args" in from_json
         assert from_json["job_type"] == "render"
+        assert "log_dir" in from_json["args"]
 
         # TODO: Check log_dir is propperly formatted
-        self.log_dir = from_json["log_dir"]
+        self.log_dir = from_json["args"]["log_dir"]
         self.job_type = from_json["job_type"]
+        self.meta = json.dumps(from_json["args"]["meta"])
+        self.render_count = from_json["args"]["render_count"]
 
 
 def create_render_job(render_job_message):
 
     log_dir_name = render_job_message.log_dir.split('/')[-1]
 
-    name = log_dir_name + "-render-" + str(uuid.uuid4())[0:8]
+    # For now only run one render job. In future, when figure out how to only
+    # have one render produce one output, run many in parallel and assign a
+    # unique render_id to each
+    render_id = "render{0}-{1}".format(str(1), 0)
+
+    # Construct the render out dir where renders will be copied once generated
+    render_out_dir = os.path.join(render_job_message.log_dir,
+                                  'render',
+                                  render_id)
+
+    name = log_dir_name + "-render-" + str(render_job_message.render_count)
     job_manifest = {
         'kind': 'Job',
         'spec': {
@@ -59,7 +72,8 @@ def create_render_job(render_job_message):
                         {'image': RENDER_IMAGE_TAG,
                          'name': name,
                          'args': ["--logdir", render_job_message.log_dir,
-                                  "--run_mode=render"]
+                                  "--run_mode=render",
+                                  "--render_out_dir=%s" % render_out_dir]
                          }],
                         'restartPolicy': 'Never'},
                     'metadata': {'name': name}}},
@@ -81,6 +95,4 @@ def main():
 
     render_job = RenderJobMessage(from_json=request.get_json())
     job_data = create_render_job(render_job)
-    # render_job.job_data = job_data
-    # return json.dumps(render_job.__dict__)
     return str(job_data)

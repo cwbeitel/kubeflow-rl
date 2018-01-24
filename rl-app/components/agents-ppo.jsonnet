@@ -43,6 +43,7 @@ local klCutoffCoef = params.kl_cutoff_coef;
 local klInitPenalty = params.kl_init_penalty;
 
 local renderSecs = params.render_secs;
+local fissionRouterIP = params.fission_router_ip;
 
 local args = [
   "--run_mode=" + runMode,
@@ -72,7 +73,8 @@ local args = [
   "--kl_cutoff_coef=" + klCutoffCoef,
   "--kl_init_penalty=" + klInitPenalty,
   "--dump_dependency_versions=" + dumpDependencyVersions,
-  "--render_secs=" + renderSecs
+  "--render_secs=" + renderSecs,
+  "--fission_router_ip=" + fissionRouterIP
 ];
 
 local workerSpec = if numGpus > 0 then

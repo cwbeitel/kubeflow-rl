@@ -21,6 +21,18 @@ from tensorflow.python.training import training_util
 from tensorflow.python.training.session_run_hook import SessionRunArgs
 from tensorflow.core.framework.summary_pb2 import Summary
 
+import requests
+
+def trigger_with_manifest(manifest, router_ip):
+    tf.logging.info("Dialing Fission router at IP %s..." % router_ip)
+    route = "job-trigger-render-events"
+    address = "http://%s:8888/%s" % (router_ip, route)
+    tf.logging.info("Request address: %s" % address)
+    tf.logging.info("issuing request with manifest: %s" % manifest)
+    r = requests.post(address, json=manifest)
+    tf.logging.info("Issued request and received response: %s" % str(r.status_code))
+    return r.status_code
+
 
 class RenderTriggerHook(session_run_hook.SessionRunHook):
   """Hook that counts steps per second."""
@@ -28,7 +40,8 @@ class RenderTriggerHook(session_run_hook.SessionRunHook):
   def __init__(self,
                every_n_steps=None,
                every_n_secs=5,
-               log_dir=None):
+               log_dir=None,
+               job_service_ip="localhost"):
 
     if (every_n_steps is None) == (every_n_secs is None):
       raise ValueError(
@@ -39,6 +52,7 @@ class RenderTriggerHook(session_run_hook.SessionRunHook):
     self._log_dir = log_dir
     self._render_count = 0
     self._total_elapsed_time = 0
+    self._job_service_ip = job_service_ip
 
   def begin(self):
     self._global_step_tensor = training_util._get_or_create_global_step_read()  # pylint: disable=protected-access
@@ -63,12 +77,13 @@ class RenderTriggerHook(session_run_hook.SessionRunHook):
           self._render_count += 1
           event_manifest = {"job_type": "render",
                             "args": {
-                                "render_count": self._render_count,
-                                "log_dir": self._log_dir,
+                                "render_count": int(self._render_count),
+                                "log_dir": str(self._log_dir),
                                 "meta": {
-                                    "elapsed_time": self._total_elapsed_time,
-                                    "global_step": global_step
+                                    "elapsed_time": float(self._total_elapsed_time),
+                                    "global_step": int(global_step)
                                 }
                             }}
           tf.logging.info("Triggering render number %s." % self._render_count)
           tf.logging.info("Render trigger manifest: %s" % event_manifest)
+          trigger_with_manifest(event_manifest, self._job_service_ip)

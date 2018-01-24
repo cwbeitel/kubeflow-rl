@@ -161,8 +161,10 @@ def train(agents_config, env_processes=True, log_dir=None):
       hooks.append(sync_replicas_hook)
 
     render_secs = agents_config.render_secs
+    job_service_ip = agents_config.fission_router_ip
     render_trigger_hook = RenderTriggerHook(log_dir=log_dir,
-                                            every_n_secs=render_secs)
+                                            every_n_secs=render_secs,
+                                            job_service_ip=job_service_ip)
     hooks.append(render_trigger_hook)
 
     scaffold = tf.train.Scaffold(

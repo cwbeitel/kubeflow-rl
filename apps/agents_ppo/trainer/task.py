@@ -56,8 +56,6 @@ flags.DEFINE_boolean("use_monitored_training_session", True,
                      "Whether to use tf.train.MonitoredTrainingSession to "
                      "manage the training session. If not, use "
                      "tf.train.Supervisor.")
-flags.DEFINE_integer("render_secs", 600,
-                     "Number of seconds between triggering render jobs.")
 
 flags.DEFINE_boolean("log_device_placement", False,
                      "Whether to output logs listing the devices on which "
@@ -66,6 +64,16 @@ flags.DEFINE_boolean("debug", True,
                      "Run in debug mode.")
 flags.DEFINE_boolean("dump_dependency_versions", False,
                      "Run in debug mode.")
+
+# Render
+flags.DEFINE_integer("render_secs", 600,
+                     "Number of seconds between triggering render jobs.")
+flags.DEFINE_string("render_out_dir", None,
+                     "The path to which to copy generated renders.")
+# TODO: Very not sure if this is correct way to do this. -------------
+flags.DEFINE_string("fission_router_ip", "localhost",
+                     "The ClusterIP of your Fission router service.")
+# --------------------------------------------------------------------
 
 # Algorithm
 flags.DEFINE_string("algorithm", "agents.ppo.PPOAlgorithm",
@@ -278,10 +286,12 @@ def main(unused_argv):
   if FLAGS.run_mode == 'render':
     render_tmp_dir = "/tmp/agents-render"
     os.system('mkdir %s' % render_tmp_dir)
-    render_out_dir = os.path.join(FLAGS.logdir, 'render', '')
     agents.scripts.visualize.visualize(
         logdir=FLAGS.logdir, outdir=render_tmp_dir, num_agents=1, num_episodes=1,
         checkpoint=None, env_processes=True)
+    render_out_dir = FLAGS.render_out_dir
+    if render_out_dir is None:
+        render_out_dir = os.path.join(FLAGS.logdir, "render")
     upload_renders(render_tmp_dir, render_out_dir)
 
 
